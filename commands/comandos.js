@@ -1,12 +1,17 @@
 async function comandosCommand(sock, chatId, message) {
     const comandosText = `
-🧾 *Comandos do Bot*
+━━━━━━━━━━━━━━━━━━
+📜 PAINEL DE COMANDOS
 
-.regras → Regras da FAC
-.lideres → Painel de líderes
-.aliados → Lista de aliados
-.rivais → Lista de rivais
-.comandos → Lista geral de comandos
+➤ .regras
+➤ .lideres
+➤ .aliados
+➤ .rivais
+➤ .ban
+➤ .promover
+➤ .horapvp
+
+━━━━━━━━━━━━━━━━━━
     `.trim();
 
     await sock.sendMessage(chatId, { text: comandosText }, { quoted: message });

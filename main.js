@@ -33,6 +33,9 @@ const lideresCommand = require('./commands/lideres');
 const aliadosCommand = require('./commands/aliados');
 const rivaisCommand = require('./commands/rivais');
 const comandosCommand = require('./commands/comandos');
+const banCommand = require('./commands/ban');
+const promoverCommand = require('./commands/promover');
+const horapvpCommand = require('./commands/horapvp');
 
 global.packname = require('./settings').packname;
 global.author = require('./settings').author;
@@ -72,6 +75,14 @@ async function handleMessages(sock, messageUpdate) {
             message.message?.buttonsResponseMessage?.selectedButtonId?.trim() ||
             ''
         ).toLowerCase().replace(/\.\s+/g, '.').trim();
+        const rawText = (
+            message.message?.conversation?.trim() ||
+            message.message?.extendedTextMessage?.text?.trim() ||
+            message.message?.imageMessage?.caption?.trim() ||
+            message.message?.videoMessage?.caption?.trim() ||
+            message.message?.buttonsResponseMessage?.selectedButtonId?.trim() ||
+            ''
+        ).replace(/\.\s+/g, '.').trim();
 
         if (userMessage.startsWith('.')) {
             console.log(`📝 Comando: ${userMessage}`);
@@ -101,21 +112,30 @@ async function handleMessages(sock, messageUpdate) {
 
         if (!isPublic && !isOwnerOrSudoCheck) return;
 
-        switch (userMessage) {
-            case '.regras':
+        switch (true) {
+            case userMessage === '.regras':
                 await regrasCommand(sock, chatId, message);
                 break;
-            case '.lideres':
+            case userMessage === '.lideres':
                 await lideresCommand(sock, chatId, message);
                 break;
-            case '.aliados':
+            case userMessage === '.aliados':
                 await aliadosCommand(sock, chatId, message);
                 break;
-            case '.rivais':
+            case userMessage === '.rivais':
                 await rivaisCommand(sock, chatId, message);
                 break;
-            case '.comandos':
+            case userMessage === '.comandos':
                 await comandosCommand(sock, chatId, message);
+                break;
+            case userMessage.startsWith('.ban'):
+                await banCommand(sock, chatId, message, senderId, rawText);
+                break;
+            case userMessage.startsWith('.promover'):
+                await promoverCommand(sock, chatId, message, senderId, rawText);
+                break;
+            case userMessage === '.horapvp':
+                await horapvpCommand(sock, chatId, message);
                 break;
             default:
                 break;
