@@ -12,6 +12,7 @@
 require('./settings')
 const { Boom } = require('@hapi/boom')
 const fs = require('fs')
+const http = require('http')
 const chalk = require('chalk')
 const FileType = require('file-type')
 const path = require('path')
@@ -44,6 +45,23 @@ const { parsePhoneNumber } = require("libphonenumber-js")
 const { PHONENUMBER_MCC } = require('@whiskeysockets/baileys/lib/Utils/generics')
 const { rmSync, existsSync } = require('fs')
 const { join } = require('path')
+
+// Render keep-alive server: keeps an HTTP port open for platform health checks.
+const RENDER_PORT = Number(process.env.PORT) || 3000
+const renderServer = http.createServer((req, res) => {
+    if (req.url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ status: 'ok', service: 'whatsapp-bot' }))
+        return
+    }
+
+    res.writeHead(200, { 'Content-Type': 'text/plain' })
+    res.end('Bot online')
+})
+
+renderServer.listen(RENDER_PORT, '0.0.0.0', () => {
+    console.log(`🌐 HTTP server listening on port ${RENDER_PORT}`)
+})
 
 // Import lightweight store
 const store = require('./lib/lightweight_store')
