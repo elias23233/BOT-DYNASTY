@@ -23,7 +23,7 @@ setInterval(() => {
     console.log('🧹 Pasta temp limpa automaticamente');
 }, 3 * 60 * 60 * 1000);
 
-require('./settings');
+const settings = require('./settings');
 require('./config.js');
 const { isBanned } = require('./lib/isBanned');
 const isOwnerOrSudo = require('./lib/isOwner');
@@ -37,8 +37,8 @@ const banCommand = require('./commands/ban');
 const promoverCommand = require('./commands/promover');
 const horapvpCommand = require('./commands/horapvp');
 
-global.packname = require('./settings').packname;
-global.author = require('./settings').author;
+global.packname = settings.packname;
+global.author = settings.author;
 global.channelLink = 'https://whatsapp.com/channel/0029Va90zAnIHphOuO8Msp3A';
 global.ytch = 'Mr Unique Hacker';
 
@@ -54,49 +54,73 @@ const channelInfo = {
     }
 };
 
+function unwrapMessage(message) {
+    if (!message?.message) return null;
+    let content = message.message;
+    if (content.ephemeralMessage?.message) content = content.ephemeralMessage.message;
+    if (content.viewOnceMessage?.message) content = content.viewOnceMessage.message;
+    if (content.viewOnceMessageV2?.message) content = content.viewOnceMessageV2.message;
+    return content;
+}
+
+function getMessageText(message) {
+    const content = unwrapMessage(message);
+    if (!content) return '';
+
+    return (
+        content.conversation ||
+        content.extendedTextMessage?.text ||
+        content.imageMessage?.caption ||
+        content.videoMessage?.caption ||
+        content.buttonsResponseMessage?.selectedButtonId ||
+        ''
+    ).trim();
+}
+
+function normalizeText(text) {
+    return text
+        .replace(/[\u200B-\u200F\uFEFF\u00A0]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function getCommandToken(text) {
+    const normalized = normalizeText(text).toLowerCase();
+    if (!normalized.startsWith('.') && !normalized.startsWith('/')) return '';
+    return normalized.split(' ')[0];
+}
+
+function readIsPublicMode() {
+    if (settings.commandMode === 'private') return false;
+    if (settings.commandMode === 'public') return true;
+
+    try {
+        const data = JSON.parse(fs.readFileSync('./data/messageCount.json'));
+        if (typeof data.isPublic === 'boolean') return data.isPublic;
+    } catch (error) {
+        console.error('Erro ao verificar modo de acesso:', error);
+    }
+
+    return true;
+}
+
 async function handleMessages(sock, messageUpdate) {
     let chatId;
     try {
         const { messages, type } = messageUpdate;
-        if (type !== 'notify' && type !== 'append') return;
+        if (type === 'replace') return;
 
-        const message = messages[0];
+        const message = messages?.[0];
         if (!message?.message) return;
 
         chatId = message.key.remoteJid;
         const senderId = message.key.participant || message.key.remoteJid;
-        const senderIsOwnerOrSudo = await isOwnerOrSudo(senderId, sock, chatId);
 
-        const userMessage = (
-            message.message?.conversation?.trim() ||
-            message.message?.extendedTextMessage?.text?.trim() ||
-            message.message?.imageMessage?.caption?.trim() ||
-            message.message?.videoMessage?.caption?.trim() ||
-            message.message?.buttonsResponseMessage?.selectedButtonId?.trim() ||
-            ''
-        ).toLowerCase().replace(/^[./]\s+/, (match) => match.trim()).trim();
-        const rawText = (
-            message.message?.conversation?.trim() ||
-            message.message?.extendedTextMessage?.text?.trim() ||
-            message.message?.imageMessage?.caption?.trim() ||
-            message.message?.videoMessage?.caption?.trim() ||
-            message.message?.buttonsResponseMessage?.selectedButtonId?.trim() ||
-            ''
-        ).replace(/^[./]\s+/, (match) => match.trim()).trim();
+        const rawText = normalizeText(getMessageText(message));
+        const commandToken = getCommandToken(rawText);
+        if (!commandToken) return;
 
-        if (userMessage.startsWith('.') || userMessage.startsWith('/')) {
-            console.log(`📝 Comando: ${userMessage}`);
-        }
-
-        let isPublic = true;
-        try {
-            const data = JSON.parse(fs.readFileSync('./data/messageCount.json'));
-            if (typeof data.isPublic === 'boolean') isPublic = data.isPublic;
-        } catch (error) {
-            console.error('Erro ao verificar modo de acesso:', error);
-        }
-
-        const isOwnerOrSudoCheck = message.key.fromMe || senderIsOwnerOrSudo;
+        console.log(`📝 Comando detectado: ${commandToken} (type=${type || 'unknown'})`);
 
         if (isBanned(senderId)) {
             if (Math.random() < 0.1) {
@@ -108,48 +132,50 @@ async function handleMessages(sock, messageUpdate) {
             return;
         }
 
-        if (!userMessage.startsWith('.') && !userMessage.startsWith('/')) return;
+        const isPublic = readIsPublicMode();
+        if (!isPublic) {
+            const isOwnerOrSudoCheck = message.key.fromMe || await isOwnerOrSudo(senderId, sock, chatId);
+            if (!isOwnerOrSudoCheck) return;
+        }
 
-        if (!isPublic && !isOwnerOrSudoCheck) return;
-
-        switch (true) {
-            case userMessage === '.regras':
-            case userMessage === '/regras':
+        switch (commandToken) {
+            case '.regras':
+            case '/regras':
                 await regrasCommand(sock, chatId, message);
                 break;
-            case userMessage === '.lideres':
-            case userMessage === '/lideres':
+            case '.lideres':
+            case '/lideres':
                 await lideresCommand(sock, chatId, message);
                 break;
-            case userMessage === '.aliados':
-            case userMessage === '/aliados':
+            case '.aliados':
+            case '/aliados':
                 await aliadosCommand(sock, chatId, message);
                 break;
-            case userMessage === '.rivais':
-            case userMessage === '/rivais':
+            case '.rivais':
+            case '/rivais':
                 await rivaisCommand(sock, chatId, message);
                 break;
-            case userMessage === '.comandos':
-            case userMessage === '/comandos':
+            case '.comandos':
+            case '/comandos':
                 await comandosCommand(sock, chatId, message);
                 break;
-            case userMessage.startsWith('.ban'):
-            case userMessage.startsWith('/ban'):
+            case '.ban':
+            case '/ban':
                 await banCommand(sock, chatId, message, senderId, rawText);
                 break;
-            case userMessage.startsWith('.promover'):
-            case userMessage.startsWith('/promover'):
+            case '.promover':
+            case '/promover':
                 await promoverCommand(sock, chatId, message, senderId, rawText);
                 break;
-            case userMessage === '.horapvp':
-            case userMessage === '/horapvp':
+            case '.horapvp':
+            case '/horapvp':
                 await horapvpCommand(sock, chatId, message);
                 break;
             default:
                 break;
         }
     } catch (error) {
-        console.error('❌ Erro no manipulador de mensagens:', error.message);
+        console.error('❌ Erro no manipulador de mensagens:', error);
         if (chatId) {
             await sock.sendMessage(chatId, {
                 text: '❌ Falha ao processar comando!',
