@@ -30,7 +30,18 @@ async function banCommand(sock, chatId, message, senderId, rawText = '') {
     }
 
     const target = getTargetUser(message);
-    const motivo = rawText.replace(/^\.ban\s*/i, '').trim() || 'Não informado';
+    if (!target) {
+        await sock.sendMessage(chatId, { text: 'Marque um membro para banir.' }, { quoted: message });
+        return;
+    }
+
+    const { isBotAdmin } = await isAdmin(sock, chatId, senderId);
+    if (!isBotAdmin) {
+        await sock.sendMessage(chatId, { text: 'Eu preciso ser admin para remover membros.' }, { quoted: message });
+        return;
+    }
+
+    const motivo = rawText.replace(/^[./]ban\s*/i, '').trim() || 'Não informado';
     const adminName = await getAdminName(sock, senderId);
     const membroLabel = target ? `@${target.split('@')[0]}` : 'Não informado';
 
@@ -44,10 +55,9 @@ async function banCommand(sock, chatId, message, senderId, rawText = '') {
 ╚════════════════════
 `.trim();
 
-    const mentions = [];
-    if (target) mentions.push(target);
+    await sock.groupParticipantsUpdate(chatId, [target], 'remove');
 
-    await sock.sendMessage(chatId, { text: panel, mentions }, { quoted: message });
+    await sock.sendMessage(chatId, { text: panel, mentions: [target] }, { quoted: message });
 }
 
 module.exports = banCommand;

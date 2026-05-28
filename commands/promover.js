@@ -30,6 +30,14 @@ async function promoverCommand(sock, chatId, message, senderId) {
         return;
     }
 
+    const { isBotAdmin } = await isAdmin(sock, chatId, senderId);
+    if (!isBotAdmin) {
+        await sock.sendMessage(chatId, { text: 'Eu preciso ser admin para promover membros.' }, { quoted: message });
+        return;
+    }
+
+    await sock.groupParticipantsUpdate(chatId, [target], 'promote');
+
     const adminTag = `@${senderId.split('@')[0]}`;
     const targetTag = `@${target.split('@')[0]}`;
 

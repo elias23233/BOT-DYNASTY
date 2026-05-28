@@ -58,7 +58,7 @@ async function handleMessages(sock, messageUpdate) {
     let chatId;
     try {
         const { messages, type } = messageUpdate;
-        if (type !== 'notify') return;
+        if (type !== 'notify' && type !== 'append') return;
 
         const message = messages[0];
         if (!message?.message) return;
@@ -74,7 +74,7 @@ async function handleMessages(sock, messageUpdate) {
             message.message?.videoMessage?.caption?.trim() ||
             message.message?.buttonsResponseMessage?.selectedButtonId?.trim() ||
             ''
-        ).toLowerCase().replace(/\.\s+/g, '.').trim();
+        ).toLowerCase().replace(/^[./]\s+/, (match) => match.trim()).trim();
         const rawText = (
             message.message?.conversation?.trim() ||
             message.message?.extendedTextMessage?.text?.trim() ||
@@ -82,9 +82,9 @@ async function handleMessages(sock, messageUpdate) {
             message.message?.videoMessage?.caption?.trim() ||
             message.message?.buttonsResponseMessage?.selectedButtonId?.trim() ||
             ''
-        ).replace(/\.\s+/g, '.').trim();
+        ).replace(/^[./]\s+/, (match) => match.trim()).trim();
 
-        if (userMessage.startsWith('.')) {
+        if (userMessage.startsWith('.') || userMessage.startsWith('/')) {
             console.log(`📝 Comando: ${userMessage}`);
         }
 
@@ -108,33 +108,41 @@ async function handleMessages(sock, messageUpdate) {
             return;
         }
 
-        if (!userMessage.startsWith('.')) return;
+        if (!userMessage.startsWith('.') && !userMessage.startsWith('/')) return;
 
         if (!isPublic && !isOwnerOrSudoCheck) return;
 
         switch (true) {
             case userMessage === '.regras':
+            case userMessage === '/regras':
                 await regrasCommand(sock, chatId, message);
                 break;
             case userMessage === '.lideres':
+            case userMessage === '/lideres':
                 await lideresCommand(sock, chatId, message);
                 break;
             case userMessage === '.aliados':
+            case userMessage === '/aliados':
                 await aliadosCommand(sock, chatId, message);
                 break;
             case userMessage === '.rivais':
+            case userMessage === '/rivais':
                 await rivaisCommand(sock, chatId, message);
                 break;
             case userMessage === '.comandos':
+            case userMessage === '/comandos':
                 await comandosCommand(sock, chatId, message);
                 break;
             case userMessage.startsWith('.ban'):
+            case userMessage.startsWith('/ban'):
                 await banCommand(sock, chatId, message, senderId, rawText);
                 break;
             case userMessage.startsWith('.promover'):
+            case userMessage.startsWith('/promover'):
                 await promoverCommand(sock, chatId, message, senderId, rawText);
                 break;
             case userMessage === '.horapvp':
+            case userMessage === '/horapvp':
                 await horapvpCommand(sock, chatId, message);
                 break;
             default:
