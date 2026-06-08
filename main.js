@@ -32,6 +32,10 @@ const regrasCommand = require('./commands/regras');
 const lideresCommand = require('./commands/lideres');
 const aliadosCommand = require('./commands/aliados');
 const rivaisCommand = require('./commands/rivais');
+const novoAliadoCommand = require('./commands/novoaliado');
+const novoRivalCommand = require('./commands/novorival');
+const removerAliadoCommand = require('./commands/removeraliado');
+const removerRivalCommand = require('./commands/removerrival');
 const comandosCommand = require('./commands/comandos');
 const banCommand = require('./commands/ban');
 const promoverCommand = require('./commands/promover');
@@ -154,6 +158,22 @@ async function handleMessages(sock, messageUpdate) {
             case '.rivais':
             case '/rivais':
                 await rivaisCommand(sock, chatId, message);
+                break;
+            case '.novoaliado':
+            case '/novoaliado':
+                await novoAliadoCommand(sock, chatId, message, senderId, rawText);
+                break;
+            case '.novorival':
+            case '/novorival':
+                await novoRivalCommand(sock, chatId, message, senderId, rawText);
+                break;
+            case '.removeraliado':
+            case '/removeraliado':
+                await removerAliadoCommand(sock, chatId, message, senderId, rawText);
+                break;
+            case '.removerrival':
+            case '/removerrival':
+                await removerRivalCommand(sock, chatId, message, senderId, rawText);
                 break;
             case '.comandos':
             case '/comandos':

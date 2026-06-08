@@ -7,6 +7,10 @@ async function comandosCommand(sock, chatId, message) {
 ➤ .lideres
 ➤ .aliados
 ➤ .rivais
+➤ .novoaliado [nome]
+➤ .novorival [nome]
+➤ .removeraliado [nome]
+➤ .removerrival [nome]
 ➤ .ban
 ➤ .promover
 ➤ .horapvp
